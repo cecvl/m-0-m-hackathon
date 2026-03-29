@@ -22,13 +22,13 @@ const confirmSchema = z.object({
   evidencePhotos: z.array(z.string().url()).optional(),
 });
 
-function createOrderHandler(req, res) {
+async function createOrderHandler(req, res) {
   const parsed = createOrderSchema.safeParse(req.body);
   if (!parsed.success) {
     return fail(res, "Invalid order payload", 422, parsed.error.flatten());
   }
 
-  const result = createOrder(parsed.data);
+  const result = await createOrder(parsed.data);
   if (result.error) {
     return fail(res, result.error, result.status);
   }

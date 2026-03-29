@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const env = {
   port: Number(process.env.PORT || 4000),
   autoReleaseDays: Number(process.env.AUTO_RELEASE_DAYS || 7),

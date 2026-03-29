@@ -1,7 +1,11 @@
 const { randomUUID } = require("crypto");
 const { db, nowIso, createPhoneUser } = require("../data/store");
+const {
+  saveListing,
+  findAvailableListings,
+} = require("../data/listingRepository");
 
-function createListing(payload) {
+async function createListing(payload) {
   createPhoneUser(payload.sellerPhone);
 
   const listing = {
@@ -18,10 +22,29 @@ function createListing(payload) {
   };
 
   db.books.set(listing.id, listing);
+
+  try {
+    await saveListing(listing);
+  } catch (error) {
+    console.warn("MongoDB listing save failed, continuing in-memory:", error.message);
+  }
+
   return listing;
 }
 
-function listBooks(query = "") {
+async function listBooks(query = "") {
+  try {
+    const mongoListings = await findAvailableListings(query);
+    if (Array.isArray(mongoListings)) {
+      for (const listing of mongoListings) {
+        db.books.set(listing.id, listing);
+      }
+      return mongoListings;
+    }
+  } catch (error) {
+    console.warn("MongoDB listing search failed, using in-memory search:", error.message);
+  }
+
   const q = query.trim().toLowerCase();
   const books = Array.from(db.books.values()).filter((book) => book.available);
 

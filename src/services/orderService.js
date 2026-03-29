@@ -1,11 +1,24 @@
 const { randomUUID } = require("crypto");
 const { db, nowIso, createPhoneUser, appendLedgerEntry } = require("../data/store");
 const { ORDER_STATUS } = require("../utils/constants");
+const { findListingById } = require("../data/listingRepository");
 
 const DELIVERY_FEE = 150;
 
-function createOrder({ bookId, buyerPhone }) {
-  const book = db.books.get(bookId);
+async function createOrder({ bookId, buyerPhone }) {
+  let book = db.books.get(bookId);
+  if (!book) {
+    try {
+      const fromMongo = await findListingById(bookId);
+      if (fromMongo) {
+        db.books.set(fromMongo.id, fromMongo);
+        book = fromMongo;
+      }
+    } catch (error) {
+      console.warn("MongoDB listing lookup failed, checking in-memory only:", error.message);
+    }
+  }
+
   if (!book || !book.available) {
     return { error: "Book not found or unavailable", status: 404 };
   }

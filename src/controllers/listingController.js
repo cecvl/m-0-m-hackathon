@@ -12,18 +12,18 @@ const listingSchema = z.object({
   sellerPhone: z.string().min(10),
 });
 
-function createListingHandler(req, res) {
+async function createListingHandler(req, res) {
   const parsed = listingSchema.safeParse(req.body);
   if (!parsed.success) {
     return fail(res, "Invalid listing payload", 422, parsed.error.flatten());
   }
 
-  const listing = createListing(parsed.data);
+  const listing = await createListing(parsed.data);
   return ok(res, listing, 201);
 }
 
-function listBooksHandler(req, res) {
-  const books = listBooks(req.query.q || "");
+async function listBooksHandler(req, res) {
+  const books = await listBooks(req.query.q || "");
   return ok(res, books);
 }
 

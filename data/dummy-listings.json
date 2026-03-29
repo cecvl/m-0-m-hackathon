@@ -1,0 +1,125 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "6fddd5a7-5bce-4a0c-bfa4-625c41b599b5",
+      "title": "The Alchemist",
+      "author": "Paulo Coelho",
+      "isbn": "9780061122415",
+      "condition": "Good",
+      "price": 350,
+      "description": "Minor wear on cover, pages intact and readable. A few pages have light highlighting.",
+      "sellerPhone": "254700111222",
+      "available": true,
+      "createdAt": "2026-03-29T00:30:55.549Z"
+    },
+    {
+      "id": "7aee55b8-6cdf-5b1d-cgeb-736d52c699c6",
+      "title": "Born a Crime",
+      "author": "Trevor Noah",
+      "isbn": "9780399588174",
+      "condition": "Like New",
+      "price": 400,
+      "description": "Almost new condition, read once. No markings or damage.",
+      "sellerPhone": "254722334455",
+      "available": true,
+      "createdAt": "2026-03-28T15:20:12.123Z"
+    },
+    {
+      "id": "8bff66c9-7deg-6c2e-dhfc-847e63d7aa7d",
+      "title": "Atomic Habits",
+      "author": "James Clear",
+      "isbn": "9780735211292",
+      "condition": "Good",
+      "price": 450,
+      "description": "Some wear on corners, pages clean. Great motivational read.",
+      "sellerPhone": "254711445566",
+      "available": true,
+      "createdAt": "2026-03-28T10:45:33.789Z"
+    },
+    {
+      "id": "9cgg77d0-8efh-7d3f-eigd-958f74e8bb8e",
+      "title": "Becoming",
+      "author": "Michelle Obama",
+      "isbn": "9781524763138",
+      "condition": "Fair",
+      "price": 300,
+      "description": "Moderate wear, spine creased but all pages intact. Some notes in pencil.",
+      "sellerPhone": "254733556677",
+      "available": true,
+      "createdAt": "2026-03-27T18:15:44.901Z"
+    },
+    {
+      "id": "0dhh88e1-9fgi-8e4g-fjhe-069g85f9cc9f",
+      "title": "The 48 Laws of Power",
+      "author": "Robert Greene",
+      "isbn": "9780140280197",
+      "condition": "Acceptable",
+      "price": 250,
+      "description": "Well-read copy with cover wear. All pages present, some highlighting.",
+      "sellerPhone": "254744667788",
+      "available": true,
+      "createdAt": "2026-03-27T09:30:22.345Z"
+    },
+    {
+      "id": "1eii99f2-0ghj-9f5h-gkif-170h96g0dd0g",
+      "title": "Rich Dad Poor Dad",
+      "author": "Robert Kiyosaki",
+      "isbn": "9781612680194",
+      "condition": "Good",
+      "price": 380,
+      "description": "Slight cover wear, pages clean. No markings inside.",
+      "sellerPhone": "254755778899",
+      "available": true,
+      "createdAt": "2026-03-26T21:00:11.567Z"
+    },
+    {
+      "id": "2fjj00g3-1hij-0g6i-hljg-281i07h1ee1h",
+      "title": "The 5 AM Club",
+      "author": "Robin Sharma",
+      "isbn": "9781443456623",
+      "condition": "Like New",
+      "price": 420,
+      "description": "Excellent condition, barely used. No marks or creases.",
+      "sellerPhone": "254766889900",
+      "available": true,
+      "createdAt": "2026-03-26T14:25:55.678Z"
+    },
+    {
+      "id": "3gkk11h4-2ijk-1h7j-imkh-392j18i2ff2i",
+      "title": "The Subtle Art of Not Giving a F*ck",
+      "author": "Mark Manson",
+      "isbn": "9780062457714",
+      "condition": "Good",
+      "price": 350,
+      "description": "Good condition with minor cover wear. Some dog-eared pages.",
+      "sellerPhone": "254777990011",
+      "available": true,
+      "createdAt": "2026-03-25T11:40:33.456Z"
+    },
+    {
+      "id": "4hll22i5-3jkl-2i8k-jnli-403j29j3gg3j",
+      "title": "Things Fall Apart",
+      "author": "Chinua Achebe",
+      "isbn": "9780385667838",
+      "condition": "Good",
+      "price": 320,
+      "description": "Classic African literature. Slight yellowing of pages but intact.",
+      "sellerPhone": "254788001122",
+      "available": true,
+      "createdAt": "2026-03-25T08:15:44.789Z"
+    },
+    {
+      "id": "5imm33j6-4klm-3j9l-ko mj-514k30k4hh4k",
+      "title": "The Power of Now",
+      "author": "Eckhart Tolle",
+      "isbn": "9781577314806",
+      "condition": "Fair",
+      "price": 280,
+      "description": "Moderate wear, some underlining in pen. Still fully readable.",
+      "sellerPhone": "254799112233",
+      "available": true,
+      "createdAt": "2026-03-24T16:55:22.901Z"
+    }
+  ]
+}
