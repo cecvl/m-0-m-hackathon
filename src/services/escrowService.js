@@ -93,7 +93,16 @@ function createDispute({ orderId, reason, buyerEvidence }) {
   return { data: dispute };
 }
 
-function confirmReceipt({ orderId, conditionMatches, evidencePhotos }) {
+function confirmReceipt({ orderId, conditionMatches, evidencePhotos, actor = {} }) {
+  const order = db.orders.get(orderId);
+  if (!order) {
+    return { error: "Order not found", status: 404 };
+  }
+
+  if (actor.role === "buyer" && actor.phone && actor.phone !== order.buyerPhone) {
+    return { error: "Only the buyer can confirm this order", status: 403 };
+  }
+
   if (conditionMatches === false) {
     return createDispute({
       orderId,

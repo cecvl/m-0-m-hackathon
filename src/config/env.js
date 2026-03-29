@@ -5,6 +5,7 @@ const env = {
   autoReleaseDays: Number(process.env.AUTO_RELEASE_DAYS || 7),
   platformCommissionRate: Number(process.env.PLATFORM_COMMISSION_RATE || 0.1),
   requireCallbackSignature: process.env.REQUIRE_CALLBACK_SIGNATURE === "true",
+  requireRoleEnforcement: process.env.REQUIRE_ROLE_ENFORCEMENT === "true",
   mpesaCallbackSecret: process.env.MPESA_CALLBACK_SECRET || "dev-mpesa-callback-secret",
   databaseUrl: process.env.DATABASE_URL || "",
   mongoDbName: process.env.MONGO_DB_NAME || "bookmarket",

@@ -13,6 +13,18 @@ npm run dev
 
 Server starts on `http://localhost:4000` by default.
 
+## Roles (Phase 3 Abstraction)
+
+Role context can be passed with headers:
+
+- `x-user-role`: `buyer` | `seller` | `admin`
+- `x-user-phone`: actor phone number
+
+Important:
+
+- By default (`REQUIRE_ROLE_ENFORCEMENT=false`), missing role headers are allowed for backward compatibility.
+- Set `REQUIRE_ROLE_ENFORCEMENT=true` in `.env` to enforce role checks strictly.
+
 ## Demo Seed (One Command)
 
 Start the server first, then run:
@@ -32,6 +44,32 @@ BASE_URL=http://localhost:4000 npm run demo:seed
 ```bash
 npm run db:check
 ```
+
+## Seed Listings To MongoDB
+
+```bash
+npm run seed:listings
+```
+
+This imports `data/dummy-listings.json` into `bookmarket.listings` with upsert semantics by `id`.
+
+## Daraja Sandbox STK Testing
+
+1. Set these values in `.env`:
+
+```env
+PAYMENT_PROVIDER=daraja
+MPESA_ENV=sandbox
+MPESA_CONSUMER_KEY=<your-key>
+MPESA_CONSUMER_SECRET=<your-secret>
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=<your-passkey>
+MPESA_CALLBACK_URL=https://<public-url>/api/payments/stk/callback
+```
+
+2. Expose localhost (e.g. ngrok) so Daraja can hit your callback URL.
+3. Start backend and initiate STK push via `POST /api/payments/stk/initiate`.
+4. Daraja callback payload is now supported directly on `POST /api/payments/stk/callback`.
 
 ## Prototype Endpoints
 

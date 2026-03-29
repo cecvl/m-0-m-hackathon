@@ -9,19 +9,41 @@ const initiateSchema = z.object({
 });
 
 const callbackSchema = z.object({
-  transactionId: z.string().min(1),
+  transactionId: z.string().min(1).optional(),
+  checkoutRequestId: z.string().min(1).optional(),
   resultCode: z.number().int(),
+  resultDesc: z.string().optional(),
   mpesaReceipt: z.string().optional(),
   callbackEventId: z.string().optional(),
 });
 
-function initiateStkHandler(req, res) {
+function normalizeDarajaCallback(body) {
+  const stk = body?.Body?.stkCallback;
+  if (!stk) {
+    return null;
+  }
+
+  const metadataItems = Array.isArray(stk.CallbackMetadata?.Item)
+    ? stk.CallbackMetadata.Item
+    : [];
+  const receipt = metadataItems.find((item) => item.Name === "MpesaReceiptNumber")?.Value;
+
+  return {
+    checkoutRequestId: stk.CheckoutRequestID,
+    resultCode: Number(stk.ResultCode),
+    resultDesc: stk.ResultDesc,
+    mpesaReceipt: receipt,
+    callbackEventId: `${stk.CheckoutRequestID}:${stk.ResultCode}`,
+  };
+}
+
+async function initiateStkHandler(req, res) {
   const parsed = initiateSchema.safeParse(req.body);
   if (!parsed.success) {
     return fail(res, "Invalid payment request payload", 422, parsed.error.flatten());
   }
 
-  const result = initiateStkPush(parsed.data);
+  const result = await initiateStkPush(parsed.data);
   if (result.error) {
     return fail(res, result.error, result.status);
   }
@@ -32,7 +54,10 @@ function initiateStkHandler(req, res) {
 }
 
 function callbackHandler(req, res) {
-  const parsed = callbackSchema.safeParse(req.body);
+  const normalizedDaraja = normalizeDarajaCallback(req.body);
+  const payload = normalizedDaraja || req.body;
+
+  const parsed = callbackSchema.safeParse(payload);
   if (!parsed.success) {
     return fail(res, "Invalid callback payload", 422, parsed.error.flatten());
   }

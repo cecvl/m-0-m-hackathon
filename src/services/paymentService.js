@@ -3,8 +3,9 @@ const { env } = require("../config/env");
 const { db, nowIso, appendLedgerEntry } = require("../data/store");
 const { ORDER_STATUS } = require("../utils/constants");
 const { signCallbackPayload, safeEqualHex } = require("../utils/signature");
+const { initiateStkPush: initiateDarajaStkPush } = require("./darajaService");
 
-function initiateStkPush({ orderId, phone, idempotencyKey }) {
+async function initiateStkPush({ orderId, phone, idempotencyKey }) {
   const order = db.orders.get(orderId);
   if (!order) {
     return { error: "Order not found", status: 404 };
@@ -26,24 +27,47 @@ function initiateStkPush({ orderId, phone, idempotencyKey }) {
     return { error: "Order is not awaiting payment", status: 409 };
   }
 
+  const provider = env.paymentProvider === "daraja" ? "MPESA_DARAJA" : "MPESA_MOCK";
+
+  let providerResponse = null;
+  if (provider === "MPESA_DARAJA") {
+    try {
+      providerResponse = await initiateDarajaStkPush({
+        phone,
+        amount: order.totalAmount,
+        orderId: order.id,
+      });
+    } catch (error) {
+      return { error: `Daraja initiation failed: ${error.message}`, status: 502 };
+    }
+  }
+
   const transaction = {
     id: randomUUID(),
     orderId,
     phone,
     amount: order.totalAmount,
-    provider: "MPESA_MOCK",
+    provider,
     status: "PENDING",
     reconciliationStatus: "PENDING_CALLBACK",
     callbackAttempts: 0,
     callbackHistory: [],
-    checkoutRequestId: `mock-${randomUUID()}`,
-    merchantRequestId: `merchant-${randomUUID()}`,
+    checkoutRequestId: providerResponse?.checkoutRequestId || `mock-${randomUUID()}`,
+    merchantRequestId: providerResponse?.merchantRequestId || `merchant-${randomUUID()}`,
+    providerMeta: providerResponse
+      ? {
+          customerMessage: providerResponse.customerMessage,
+          responseCode: providerResponse.responseCode,
+          responseDescription: providerResponse.responseDescription,
+        }
+      : null,
     createdAt: nowIso(),
     updatedAt: nowIso(),
     idempotencyKey: idempotencyKey || null,
   };
 
   db.transactions.set(transaction.id, transaction);
+  db.checkoutRequestToTransaction.set(transaction.checkoutRequestId, transaction.id);
 
   if (idempotencyKey) {
     db.paymentInitiationKeys.set(idempotencyKey, transaction.id);
@@ -78,8 +102,36 @@ function verifyCallbackSignature(payload, providedSignature) {
   return { valid, expected };
 }
 
-function handlePaymentCallback({ transactionId, resultCode, mpesaReceipt, callbackEventId, callbackSignature }) {
-  const payload = { transactionId, resultCode, mpesaReceipt, callbackEventId };
+function resolveTransactionId({ transactionId, checkoutRequestId }) {
+  if (transactionId) {
+    return transactionId;
+  }
+
+  if (!checkoutRequestId) {
+    return null;
+  }
+
+  return db.checkoutRequestToTransaction.get(checkoutRequestId) || null;
+}
+
+function handlePaymentCallback({
+  transactionId,
+  checkoutRequestId,
+  resultCode,
+  resultDesc,
+  mpesaReceipt,
+  callbackEventId,
+  callbackSignature,
+}) {
+  const resolvedTransactionId = resolveTransactionId({ transactionId, checkoutRequestId });
+  const payload = {
+    transactionId: resolvedTransactionId,
+    checkoutRequestId,
+    resultCode,
+    resultDesc,
+    mpesaReceipt,
+    callbackEventId,
+  };
   const signatureCheck = verifyCallbackSignature(payload, callbackSignature);
   if (!signatureCheck.valid) {
     return { error: "Invalid callback signature", status: 401 };
@@ -94,7 +146,11 @@ function handlePaymentCallback({ transactionId, resultCode, mpesaReceipt, callba
     };
   }
 
-  const tx = db.transactions.get(transactionId);
+  if (!resolvedTransactionId) {
+    return { error: "Transaction could not be resolved from callback payload", status: 404 };
+  }
+
+  const tx = db.transactions.get(resolvedTransactionId);
   if (!tx) {
     return { error: "Transaction not found", status: 404 };
   }
@@ -102,7 +158,7 @@ function handlePaymentCallback({ transactionId, resultCode, mpesaReceipt, callba
   tx.callbackAttempts += 1;
   tx.lastCallbackAt = nowIso();
   tx.resultCode = resultCode;
-  tx.resultDesc = resultCode === 0 ? "Success" : "Failed";
+  tx.resultDesc = resultDesc || (resultCode === 0 ? "Success" : "Failed");
 
   if (tx.status !== "PENDING") {
     db.callbackEvents.set(eventId, {
@@ -143,6 +199,7 @@ function handlePaymentCallback({ transactionId, resultCode, mpesaReceipt, callba
   db.callbackEvents.set(eventId, {
     eventId,
     transactionId: tx.id,
+    checkoutRequestId: tx.checkoutRequestId,
     recordedAt: nowIso(),
     resultCode,
     duplicate: false,

@@ -55,18 +55,29 @@ async function createOrder({ bookId, buyerPhone }) {
   return { data: order };
 }
 
-function getOrder(orderId) {
+function getOrder(orderId, actor = {}) {
   const order = db.orders.get(orderId);
   if (!order) {
     return { error: "Order not found", status: 404 };
   }
+
+  if (actor.role === "buyer" && actor.phone && actor.phone !== order.buyerPhone) {
+    return { error: "Buyer not allowed to access this order", status: 403 };
+  }
+  if (actor.role === "seller" && actor.phone && actor.phone !== order.sellerPhone) {
+    return { error: "Seller not allowed to access this order", status: 403 };
+  }
+
   return { data: order };
 }
 
-function markDispatched(orderId, pickupPointId) {
+function markDispatched(orderId, pickupPointId, actor = {}) {
   const order = db.orders.get(orderId);
   if (!order) {
     return { error: "Order not found", status: 404 };
+  }
+  if (actor.phone && actor.phone !== order.sellerPhone) {
+    return { error: "Only the seller can mark order as dispatched", status: 403 };
   }
   if (order.status !== ORDER_STATUS.PAID_HELD) {
     return { error: "Order must be PAID_HELD before dispatch", status: 409 };
@@ -78,10 +89,13 @@ function markDispatched(orderId, pickupPointId) {
   return { data: order };
 }
 
-function markDelivered(orderId) {
+function markDelivered(orderId, actor = {}) {
   const order = db.orders.get(orderId);
   if (!order) {
     return { error: "Order not found", status: 404 };
+  }
+  if (actor.phone && actor.phone !== order.sellerPhone) {
+    return { error: "Only the seller can mark order as delivered", status: 403 };
   }
   if (order.status !== ORDER_STATUS.DISPATCHED) {
     return { error: "Order must be DISPATCHED before delivery", status: 409 };
@@ -93,10 +107,18 @@ function markDelivered(orderId) {
   return { data: order };
 }
 
+function listSellerOrders(sellerPhone) {
+  const orders = Array.from(db.orders.values())
+    .filter((order) => order.sellerPhone === sellerPhone)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return { data: orders };
+}
+
 module.exports = {
   DELIVERY_FEE,
   createOrder,
   getOrder,
   markDispatched,
   markDelivered,
+  listSellerOrders,
 };
