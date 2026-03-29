@@ -8,6 +8,7 @@ function getBaseUrl() {
 function mapBookMonkeyBook(book = {}) {
   const isbn = book.isbn || book.isbn13 || null;
   const authors = Array.isArray(book.authors) ? book.authors : [];
+  const coverUrl = book.thumbnailUrl || book.cover || null;
 
   return {
     id: `bm-${isbn || book._id || Math.random().toString(36).slice(2, 10)}`,
@@ -21,12 +22,13 @@ function mapBookMonkeyBook(book = {}) {
     available: true,
     createdAt: new Date().toISOString(),
     source: "bookmonkey",
+    coverUrl,
     bookMonkeyData: {
       isbn,
       title: book.title || null,
       authors,
       categories: Array.isArray(book.categories) ? book.categories : [],
-      coverUrl: book.thumbnailUrl || book.cover || null,
+      coverUrl,
     },
   };
 }

@@ -7,7 +7,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "demo:seed": "node scripts/demo-seed.js",
-    "seed:listings": "node scripts/import-dummy-listings.js",
+    "seed:listings": "node scripts/import-bookmonkey-listings.js",
     "db:check": "node scripts/check-mongo.js",
     "test": "echo \"No tests yet\"",
     "demo:bookmonkey:api": "npx bookmonkey-api",

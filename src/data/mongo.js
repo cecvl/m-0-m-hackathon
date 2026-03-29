@@ -46,6 +46,9 @@ async function getListingsCollection() {
   if (!listingsIndexesReady) {
     await collection.createIndex({ id: 1 }, { unique: true });
     await collection.createIndex({ available: 1, createdAt: -1 });
+    await collection.createIndex({ source: 1, createdAt: -1 });
+    await collection.createIndex({ isbn: 1 });
+    await collection.createIndex({ "bookMonkeyData.isbn": 1 });
     try {
       await collection.createIndex({ title: "text", author: "text", isbn: "text", description: "text" });
     } catch (error) {

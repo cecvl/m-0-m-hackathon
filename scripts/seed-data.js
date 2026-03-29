@@ -214,8 +214,8 @@ function seedDatabase() {
       updatedAt: nowIso(),
       active: true,
       soldAt: null,
-      openLibraryData: {},
-      enrichedAt: null,
+      bookMonkeyData: {},
+      source: "seed",
     };
     db.books.set(listingRecord.id, listingRecord);
     console.log(`  ✓ ${listing.title} by ${listing.author} (${listing.price} KES)`);

@@ -45,13 +45,16 @@ BASE_URL=http://localhost:4000 npm run demo:seed
 npm run db:check
 ```
 
-## Seed Listings To MongoDB
+## Seed Listings To MongoDB (BookMonkey Source)
+
+Run BookMonkey API separately, then import listings into MongoDB:
 
 ```bash
+npm run demo:bookmonkey:api
 npm run seed:listings
 ```
 
-This imports `data/dummy-listings.json` into `bookmarket.listings` with upsert semantics by `id`.
+This imports books from `BOOKMONKEY_BASE_URL/books` into `bookmarket.listings` with source=`bookmonkey`.
 
 ## Daraja Sandbox STK Testing
 
@@ -59,3 +62,18 @@ This imports `data/dummy-listings.json` into `bookmarket.listings` with upsert s
 2. Expose localhost (e.g. ngrok) so Daraja can hit your callback URL.
 3. Start backend and initiate STK push via `POST /api/payments/stk/initiate`.
 
+
+
+## External Catalog Provider
+
+Use an external API as catalog source (no dummy catalog in project runtime):
+
+```bash
+BOOK_DATA_PROVIDER=bookmonkey npm start
+```
+
+Optional base URL override:
+
+```bash
+BOOKMONKEY_BASE_URL=http://localhost:4730 npm run demo:bookmonkey:check
+```

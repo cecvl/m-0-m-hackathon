@@ -11,6 +11,20 @@ function useBookMonkeyProvider() {
   return String(env.bookDataProvider || "local").toLowerCase() === "bookmonkey";
 }
 
+function withCoverUrl(listing = {}) {
+  const coverUrl =
+    listing.coverUrl ||
+    listing.imageUrl ||
+    listing.thumbnailUrl ||
+    (listing.bookMonkeyData && listing.bookMonkeyData.coverUrl) ||
+    null;
+
+  return {
+    ...listing,
+    coverUrl,
+  };
+}
+
 async function createListing(payload) {
   createPhoneUser(payload.sellerPhone);
 
@@ -53,7 +67,7 @@ async function listBooks(query = "") {
       for (const listing of mongoListings) {
         db.books.set(listing.id, listing);
       }
-      return mongoListings;
+      return mongoListings.map(withCoverUrl);
     }
   } catch (error) {
     console.warn("MongoDB listing search failed, using in-memory search:", error.message);
@@ -63,14 +77,16 @@ async function listBooks(query = "") {
   const books = Array.from(db.books.values()).filter((book) => book.available);
 
   if (!q) {
-    return books;
+    return books.map(withCoverUrl);
   }
 
-  return books.filter((book) => {
-    return [book.title, book.author, book.isbn, book.description]
-      .filter(Boolean)
-      .some((field) => field.toLowerCase().includes(q));
-  });
+  return books
+    .filter((book) => {
+      return [book.title, book.author, book.isbn, book.description]
+        .filter(Boolean)
+        .some((field) => field.toLowerCase().includes(q));
+    })
+    .map(withCoverUrl);
 }
 
 module.exports = {
