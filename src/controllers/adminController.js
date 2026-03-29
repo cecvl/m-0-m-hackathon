@@ -1,6 +1,7 @@
 const { db } = require("../data/store");
 const { autoReleaseEligibleOrders } = require("../services/escrowService");
 const { ok } = require("../utils/response");
+const { getDeliveryStats } = require("../services/courierService");
 
 function getStateHandler(req, res) {
   return ok(res, {
@@ -47,8 +48,14 @@ function getReconciliationHandler(req, res) {
   return ok(res, { summary, anomalies, transactions });
 }
 
+function getDeliveriesHandler(req, res) {
+  const stats = getDeliveryStats();
+  return ok(res, stats);
+}
+
 module.exports = {
   getStateHandler,
   autoReleaseNowHandler,
   getReconciliationHandler,
+  getDeliveriesHandler,
 };

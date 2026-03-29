@@ -1,5 +1,5 @@
 const { randomUUID } = require("crypto");
-const { nowIso } = require("./store");
+const { nowIso } = require("../data/store");
 
 /**
  * Mock PickupMtaani Courier Service

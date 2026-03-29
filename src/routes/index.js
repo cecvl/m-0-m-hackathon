@@ -19,6 +19,7 @@ const {
   getStateHandler,
   autoReleaseNowHandler,
   getReconciliationHandler,
+  getDeliveriesHandler,
 } = require("../controllers/adminController");
 const { attachActor, requireRole } = require("../middleware/roles");
 
@@ -46,5 +47,6 @@ router.post("/api/payments/stk/callback", callbackHandler);
 router.get("/api/admin/state", requireRole(["admin"]), getStateHandler);
 router.get("/api/admin/reconciliation", requireRole(["admin"]), getReconciliationHandler);
 router.post("/api/admin/escrow/auto-release", requireRole(["admin"]), autoReleaseNowHandler);
+router.get("/api/admin/deliveries", requireRole(["admin"]), getDeliveriesHandler);
 
 module.exports = router;
