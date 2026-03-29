@@ -48,10 +48,12 @@ async function run() {
     buyerPhone: "254700999888",
   });
 
-  const tx = await post("/api/payments/stk/initiate", {
+  const stk = await post("/api/payments/stk/initiate", {
     orderId: order.id,
     phone: "254700999888",
+    idempotencyKey: `seed-init-${order.id}`,
   });
+  const tx = stk.transaction;
 
   await post("/api/payments/stk/callback", {
     transactionId: tx.id,

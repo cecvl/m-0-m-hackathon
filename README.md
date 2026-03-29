@@ -2,6 +2,8 @@
 
 Quick MVP backend for the Kenya 2nd-hand book marketplace.
 
+For implementation status and completed work, see `implementations.md`.
+
 ## Run
 
 ```bash
@@ -25,6 +27,12 @@ Optional custom URL:
 BASE_URL=http://localhost:4000 npm run demo:seed
 ```
 
+## DB Check
+
+```bash
+npm run db:check
+```
+
 ## Prototype Endpoints
 
 - `GET /health`
@@ -46,25 +54,3 @@ BASE_URL=http://localhost:4000 npm run demo:seed
 - Data is in-memory only for demo speed.
 - M-Pesa integration is mocked via initiate/callback endpoints.
 - Escrow is represented as platform-held funds in a ledger.
-
-## Phase 2 Started
-
-- Callback idempotency via `callbackEventId` (duplicate callbacks ignored).
-- Optional callback signature validation with `x-callback-signature`.
-- Reconciliation status tracking on transactions and admin report endpoint.
-
-## Signup Alerts (Do This Now)
-
-- `Safaricom Daraja (Sandbox)`: required for real STK push and callback testing.
-- `Africa's Talking (Sandbox/Prod)`: required for SMS notifications to buyers/sellers.
-- `MongoDB Atlas`: needed when moving from in-memory data to persistent Phase 1 DB.
-- `Render` or `Railway`: backend hosting target for shared demo/staging URL.
-- `Vercel`: frontend hosting (since frontend is separate).
-- `ngrok` or `Cloudflare Tunnel`: required for testing callbacks against local machine.
-
-Minimum credentials to collect today:
-
-- Consumer key + secret (Daraja)
-- Passkey + shortcode/till (Daraja)
-- SMS API key + username (Africa's Talking)
-- MongoDB connection string (Atlas)

@@ -5,6 +5,7 @@ const { ok, fail } = require("../utils/response");
 const initiateSchema = z.object({
   orderId: z.string().min(1),
   phone: z.string().min(10),
+  idempotencyKey: z.string().min(8).optional(),
 });
 
 const callbackSchema = z.object({
@@ -20,11 +21,14 @@ function initiateStkHandler(req, res) {
     return fail(res, "Invalid payment request payload", 422, parsed.error.flatten());
   }
 
-  const result = initiateStkPush(parsed.data.orderId, parsed.data.phone);
+  const result = initiateStkPush(parsed.data);
   if (result.error) {
     return fail(res, result.error, result.status);
   }
-  return ok(res, result.data, 201);
+  return ok(res, {
+    transaction: result.data,
+    warning: result.warning || null,
+  }, 201);
 }
 
 function callbackHandler(req, res) {

@@ -4,10 +4,22 @@ const { db, nowIso, appendLedgerEntry } = require("../data/store");
 const { ORDER_STATUS } = require("../utils/constants");
 const { signCallbackPayload, safeEqualHex } = require("../utils/signature");
 
-function initiateStkPush(orderId, phone) {
+function initiateStkPush({ orderId, phone, idempotencyKey }) {
   const order = db.orders.get(orderId);
   if (!order) {
     return { error: "Order not found", status: 404 };
+  }
+
+  if (order.buyerPhone !== phone) {
+    return { error: "Payment phone must match order buyer phone", status: 403 };
+  }
+
+  if (idempotencyKey && db.paymentInitiationKeys.has(idempotencyKey)) {
+    const existingTxId = db.paymentInitiationKeys.get(idempotencyKey);
+    const existingTx = db.transactions.get(existingTxId);
+    if (existingTx) {
+      return { data: existingTx, warning: "Duplicate initiation request returned existing transaction" };
+    }
   }
 
   if (order.status !== ORDER_STATUS.PENDING_PAYMENT) {
@@ -28,9 +40,15 @@ function initiateStkPush(orderId, phone) {
     merchantRequestId: `merchant-${randomUUID()}`,
     createdAt: nowIso(),
     updatedAt: nowIso(),
+    idempotencyKey: idempotencyKey || null,
   };
 
   db.transactions.set(transaction.id, transaction);
+
+  if (idempotencyKey) {
+    db.paymentInitiationKeys.set(idempotencyKey, transaction.id);
+  }
+
   return { data: transaction };
 }
 
@@ -69,8 +87,9 @@ function handlePaymentCallback({ transactionId, resultCode, mpesaReceipt, callba
 
   const eventId = buildEventId(payload);
   if (db.callbackEvents.has(eventId)) {
+    const event = db.callbackEvents.get(eventId);
     return {
-      data: db.callbackEvents.get(eventId),
+      data: db.transactions.get(event.transactionId),
       warning: "Duplicate callback event ignored",
     };
   }
@@ -86,7 +105,13 @@ function handlePaymentCallback({ transactionId, resultCode, mpesaReceipt, callba
   tx.resultDesc = resultCode === 0 ? "Success" : "Failed";
 
   if (tx.status !== "PENDING") {
-    db.callbackEvents.set(eventId, tx);
+    db.callbackEvents.set(eventId, {
+      eventId,
+      transactionId: tx.id,
+      recordedAt: nowIso(),
+      resultCode,
+      duplicate: true,
+    });
     return { data: tx, warning: "Callback already processed" };
   }
 
@@ -115,7 +140,13 @@ function handlePaymentCallback({ transactionId, resultCode, mpesaReceipt, callba
     });
   }
 
-  db.callbackEvents.set(eventId, tx);
+  db.callbackEvents.set(eventId, {
+    eventId,
+    transactionId: tx.id,
+    recordedAt: nowIso(),
+    resultCode,
+    duplicate: false,
+  });
 
   return { data: tx };
 }

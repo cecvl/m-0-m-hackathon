@@ -7,6 +7,7 @@ const db = {
   books: new Map(),
   orders: new Map(),
   transactions: new Map(),
+  paymentInitiationKeys: new Map(),
   callbackEvents: new Map(),
   ledger: [],
   disputes: new Map(),
