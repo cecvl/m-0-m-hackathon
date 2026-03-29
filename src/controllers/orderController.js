@@ -36,29 +36,29 @@ async function createOrderHandler(req, res) {
   return ok(res, result.data, 201);
 }
 
-function getOrderHandler(req, res) {
-  const result = getOrder(req.params.id, req.actor || {});
+async function getOrderHandler(req, res) {
+  const result = await getOrder(req.params.id, req.actor || {});
   if (result.error) {
     return fail(res, result.error, result.status);
   }
   return ok(res, result.data);
 }
 
-function markDispatchedHandler(req, res) {
+async function markDispatchedHandler(req, res) {
   const parsed = dispatchSchema.safeParse(req.body);
   if (!parsed.success) {
     return fail(res, "Invalid dispatch payload", 422, parsed.error.flatten());
   }
 
-  const result = markDispatched(req.params.id, parsed.data.pickupPointId, req.actor || {});
+  const result = await markDispatched(req.params.id, parsed.data.pickupPointId, req.actor || {});
   if (result.error) {
     return fail(res, result.error, result.status);
   }
   return ok(res, result.data);
 }
 
-function markDeliveredHandler(req, res) {
-  const result = markDelivered(req.params.id, req.actor || {});
+async function markDeliveredHandler(req, res) {
+  const result = await markDelivered(req.params.id, req.actor || {});
   if (result.error) {
     return fail(res, result.error, result.status);
   }
@@ -78,13 +78,13 @@ function confirmReceiptHandler(req, res) {
   return ok(res, result.data);
 }
 
-function listSellerOrdersHandler(req, res) {
+async function listSellerOrdersHandler(req, res) {
   const sellerPhone = req.actor?.phone || req.params.phone;
   if (!sellerPhone) {
     return fail(res, "Seller phone is required", 422);
   }
 
-  const result = listSellerOrders(sellerPhone);
+  const result = await listSellerOrders(sellerPhone);
   return ok(res, result.data);
 }
 

@@ -21,6 +21,13 @@ const {
   getReconciliationHandler,
   getDeliveriesHandler,
 } = require("../controllers/adminController");
+const {
+  signupHandler,
+  loginHandler,
+  getUserHandler,
+  verifySellerHandler,
+  updateProfileHandler,
+} = require("../controllers/authController");
 const { attachActor, requireRole } = require("../middleware/roles");
 
 const router = express.Router();
@@ -30,6 +37,15 @@ router.use(attachActor);
 router.get("/health", (req, res) => {
   res.json({ success: true, data: { service: "backend-prototype", status: "ok" } });
 });
+
+// Auth endpoints (public)
+router.post("/api/auth/signup", signupHandler);
+router.post("/api/auth/login", loginHandler);
+router.post("/api/auth/verify-seller", verifySellerHandler);
+
+// Auth endpoints (requires authentication)
+router.get("/api/auth/me", requireRole(["buyer", "seller", "admin"]), getUserHandler);
+router.put("/api/auth/profile", requireRole(["buyer", "seller", "admin"]), updateProfileHandler);
 
 router.post("/api/listings", requireRole(["seller", "admin"]), createListingHandler);
 router.get("/api/listings", listBooksHandler);

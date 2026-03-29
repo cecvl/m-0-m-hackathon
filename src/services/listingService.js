@@ -4,6 +4,12 @@ const {
   saveListing,
   findAvailableListings,
 } = require("../data/listingRepository");
+const { fetchBookMonkeyBooks } = require("./bookMonkeyService");
+const { env } = require("../config/env");
+
+function useBookMonkeyProvider() {
+  return String(env.bookDataProvider || "local").toLowerCase() === "bookmonkey";
+}
 
 async function createListing(payload) {
   createPhoneUser(payload.sellerPhone);
@@ -33,6 +39,14 @@ async function createListing(payload) {
 }
 
 async function listBooks(query = "") {
+  if (useBookMonkeyProvider()) {
+    try {
+      return await fetchBookMonkeyBooks(query, 24);
+    } catch (error) {
+      console.warn("BookMonkey API failed, falling back to local listings:", error.message);
+    }
+  }
+
   try {
     const mongoListings = await findAvailableListings(query);
     if (Array.isArray(mongoListings)) {

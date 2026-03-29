@@ -47,13 +47,17 @@ async function initiateStkHandler(req, res) {
   if (result.error) {
     return fail(res, result.error, result.status);
   }
-  return ok(res, {
-    transaction: result.data,
-    warning: result.warning || null,
-  }, 201);
+  return ok(
+    res,
+    {
+      transaction: result.data,
+      warning: result.warning || null,
+    },
+    201,
+  );
 }
 
-function callbackHandler(req, res) {
+async function callbackHandler(req, res) {
   const normalizedDaraja = normalizeDarajaCallback(req.body);
   const payload = normalizedDaraja || req.body;
 
@@ -62,7 +66,7 @@ function callbackHandler(req, res) {
     return fail(res, "Invalid callback payload", 422, parsed.error.flatten());
   }
 
-  const result = handlePaymentCallback({
+  const result = await handlePaymentCallback({
     ...parsed.data,
     callbackSignature: req.headers["x-callback-signature"],
   });

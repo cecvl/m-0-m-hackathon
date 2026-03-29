@@ -9,7 +9,9 @@
     "demo:seed": "node scripts/demo-seed.js",
     "seed:listings": "node scripts/import-dummy-listings.js",
     "db:check": "node scripts/check-mongo.js",
-    "test": "echo \"No tests yet\""
+    "test": "echo \"No tests yet\"",
+    "demo:bookmonkey:api": "npx bookmonkey-api",
+    "demo:bookmonkey:check": "node scripts/check-bookmonkey.js"
   },
   "keywords": [],
   "author": "",

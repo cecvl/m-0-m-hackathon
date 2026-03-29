@@ -22,6 +22,8 @@ const env = {
   atUsername: process.env.AT_USERNAME || "sandbox",
   atApiKey: process.env.AT_API_KEY || "",
   atSenderId: process.env.AT_SENDER_ID || "",
+  bookDataProvider: process.env.BOOK_DATA_PROVIDER || "local",
+  bookMonkeyBaseUrl: process.env.BOOKMONKEY_BASE_URL || "http://localhost:4730",
 };
 
 module.exports = { env };

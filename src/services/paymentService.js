@@ -4,10 +4,59 @@ const { db, nowIso, appendLedgerEntry } = require("../data/store");
 const { ORDER_STATUS } = require("../utils/constants");
 const { signCallbackPayload, safeEqualHex } = require("../utils/signature");
 const { initiateStkPush: initiateDarajaStkPush } = require("./darajaService");
+const { saveOrder, findOrderById } = require("../data/orderRepository");
+const {
+  saveTransaction,
+  findTransactionByCheckoutRequestId,
+} = require("../data/transactionRepository");
+const { appendLedgerEntry: appendLedgerEntryToMongo } = require("../data/ledgerRepository");
 const { sendSMS } = require("./smsService");
 
+async function persistOrder(order) {
+  try {
+    await saveOrder(order);
+  } catch (error) {
+    console.warn("MongoDB order save failed, continuing in-memory:", error.message);
+  }
+}
+
+async function persistTransaction(tx) {
+  try {
+    await saveTransaction(tx);
+  } catch (error) {
+    console.warn("MongoDB transaction save failed, continuing in-memory:", error.message);
+  }
+}
+
+async function persistLedger(entry) {
+  try {
+    await appendLedgerEntryToMongo(entry);
+  } catch (error) {
+    console.warn("MongoDB ledger save failed, continuing in-memory:", error.message);
+  }
+}
+
+async function resolveOrder(orderId) {
+  let order = db.orders.get(orderId);
+  if (order) {
+    return order;
+  }
+
+  try {
+    const fromMongo = await findOrderById(orderId);
+    if (fromMongo) {
+      db.orders.set(fromMongo.id, fromMongo);
+      order = fromMongo;
+    }
+  } catch (error) {
+    console.warn("MongoDB order lookup failed, checking in-memory only:", error.message);
+  }
+
+  return order;
+}
+
 async function initiateStkPush({ orderId, phone, idempotencyKey }) {
-  const order = db.orders.get(orderId);
+  const order = await resolveOrder(orderId);
   if (!order) {
     return { error: "Order not found", status: 404 };
   }
@@ -74,6 +123,8 @@ async function initiateStkPush({ orderId, phone, idempotencyKey }) {
     db.paymentInitiationKeys.set(idempotencyKey, transaction.id);
   }
 
+  await persistTransaction(transaction);
+
   return { data: transaction };
 }
 
@@ -103,7 +154,7 @@ function verifyCallbackSignature(payload, providedSignature) {
   return { valid, expected };
 }
 
-function resolveTransactionId({ transactionId, checkoutRequestId }) {
+async function resolveTransactionId({ transactionId, checkoutRequestId }) {
   if (transactionId) {
     return transactionId;
   }
@@ -112,10 +163,26 @@ function resolveTransactionId({ transactionId, checkoutRequestId }) {
     return null;
   }
 
-  return db.checkoutRequestToTransaction.get(checkoutRequestId) || null;
+  const inMemory = db.checkoutRequestToTransaction.get(checkoutRequestId);
+  if (inMemory) {
+    return inMemory;
+  }
+
+  try {
+    const fromMongo = await findTransactionByCheckoutRequestId(checkoutRequestId);
+    if (fromMongo) {
+      db.transactions.set(fromMongo.id, fromMongo);
+      db.checkoutRequestToTransaction.set(checkoutRequestId, fromMongo.id);
+      return fromMongo.id;
+    }
+  } catch (error) {
+    console.warn("MongoDB checkout lookup failed, using in-memory mapping only:", error.message);
+  }
+
+  return null;
 }
 
-function handlePaymentCallback({
+async function handlePaymentCallback({
   transactionId,
   checkoutRequestId,
   resultCode,
@@ -124,7 +191,7 @@ function handlePaymentCallback({
   callbackEventId,
   callbackSignature,
 }) {
-  const resolvedTransactionId = resolveTransactionId({ transactionId, checkoutRequestId });
+  const resolvedTransactionId = await resolveTransactionId({ transactionId, checkoutRequestId });
   const payload = {
     transactionId: resolvedTransactionId,
     checkoutRequestId,
@@ -173,7 +240,7 @@ function handlePaymentCallback({
     return { data: tx, warning: "Callback already processed" };
   }
 
-  const order = db.orders.get(tx.orderId);
+  const order = await resolveOrder(tx.orderId);
   if (!order) {
     return { error: "Order linked to transaction was not found", status: 404 };
   }
@@ -184,20 +251,24 @@ function handlePaymentCallback({
   tx.mpesaReceipt = mpesaReceipt || null;
   tx.callbackHistory.push({ eventId, receivedAt: nowIso(), resultCode, mpesaReceipt: mpesaReceipt || null });
 
+  await persistTransaction(tx);
+
   if (tx.status === "SUCCESS") {
     order.status = ORDER_STATUS.PAID_HELD;
     order.paidAt = nowIso();
     order.updatedAt = nowIso();
 
-    appendLedgerEntry({
+    await persistOrder(order);
+
+    const ledgerEntry = appendLedgerEntry({
       orderId: order.id,
       transactionId: tx.id,
       type: "ESCROW_HOLD",
       amount: tx.amount,
       note: "Funds held in platform escrow wallet",
     });
+    await persistLedger(ledgerEntry);
 
-    // Fire-and-forget notifications; callback processing must not fail on SMS errors.
     (async () => {
       try {
         await sendSMS(
