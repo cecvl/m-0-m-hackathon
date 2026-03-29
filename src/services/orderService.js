@@ -2,6 +2,7 @@ const { randomUUID } = require("crypto");
 const { db, nowIso, createPhoneUser, appendLedgerEntry } = require("../data/store");
 const { ORDER_STATUS } = require("../utils/constants");
 const { findListingById } = require("../data/listingRepository");
+const { sendSMS } = require("./smsService");
 
 const DELIVERY_FEE = 150;
 
@@ -52,6 +53,23 @@ async function createOrder({ bookId, buyerPhone }) {
     note: "Buyer initiated order",
   });
 
+  // Send SMS notifications
+  (async () => {
+    try {
+      await sendSMS(
+        buyerPhone,
+        `📚 Order created! Book: ${book.title} by ${book.author}\nAmount: KSH ${order.totalAmount} (KSH ${book.price} + KSH ${DELIVERY_FEE} delivery)\nPending payment. Reply HELP for support.`
+      );
+      await sendSMS(
+        book.sellerPhone,
+        `📦 New order for your book "${book.title}"\nBuyer placed an order. Payment expected soon. Order ID: ${order.id}`
+      );
+    } catch (error) {
+      console.error("SMS notification failed:", error.message);
+      // Don't fail the order if SMS fails
+    }
+  })();
+
   return { data: order };
 }
 
@@ -86,6 +104,22 @@ function markDispatched(orderId, pickupPointId, actor = {}) {
   order.status = ORDER_STATUS.DISPATCHED;
   order.pickupPointId = pickupPointId;
   order.updatedAt = nowIso();
+
+  // Send SMS notification to buyer
+  (async () => {
+    try {
+      const pickupPoint = db.pickupPoints.find((p) => p.id === pickupPointId);
+      const pickupName = pickupPoint ? pickupPoint.name : "Specified pickup point";
+      
+      await sendSMS(
+        order.buyerPhone,
+        `📬 Your book is on its way! It will be delivered to:\n${pickupName}\nYou'll receive it within 24 hours. Keep your order ID: ${orderId}`
+      );
+    } catch (error) {
+      console.error("SMS dispatch notification failed:", error.message);
+    }
+  })();
+
   return { data: order };
 }
 
@@ -101,10 +135,23 @@ function markDelivered(orderId, actor = {}) {
     return { error: "Order must be DISPATCHED before delivery", status: 409 };
   }
 
-  order.status = ORDER_STATUS.DELIVERED;
-  order.deliveredAt = nowIso();
-  order.updatedAt = nowIso();
-  return { data: order };
+    order.status = ORDER_STATUS.DELIVERED;
+    order.deliveredAt = nowIso();
+    order.updatedAt = nowIso();
+
+    // Send SMS notification to buyer
+    (async () => {
+      try {
+        await sendSMS(
+          order.buyerPhone,
+          `✅ Your book has arrived! Please confirm receipt in the app.\nIf condition doesn't match the listing, report within 7 days or funds auto-release to seller. Order ID: ${orderId}`
+        );
+      } catch (error) {
+        console.error("SMS delivery notification failed:", error.message);
+      }
+    })();
+
+    return { data: order };
 }
 
 function listSellerOrders(sellerPhone) {

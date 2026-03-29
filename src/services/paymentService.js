@@ -4,6 +4,7 @@ const { db, nowIso, appendLedgerEntry } = require("../data/store");
 const { ORDER_STATUS } = require("../utils/constants");
 const { signCallbackPayload, safeEqualHex } = require("../utils/signature");
 const { initiateStkPush: initiateDarajaStkPush } = require("./darajaService");
+const { sendSMS } = require("./smsService");
 
 async function initiateStkPush({ orderId, phone, idempotencyKey }) {
   const order = db.orders.get(orderId);
@@ -132,6 +133,7 @@ function handlePaymentCallback({
     mpesaReceipt,
     callbackEventId,
   };
+
   const signatureCheck = verifyCallbackSignature(payload, callbackSignature);
   if (!signatureCheck.valid) {
     return { error: "Invalid callback signature", status: 401 };
@@ -194,6 +196,22 @@ function handlePaymentCallback({
       amount: tx.amount,
       note: "Funds held in platform escrow wallet",
     });
+
+    // Fire-and-forget notifications; callback processing must not fail on SMS errors.
+    (async () => {
+      try {
+        await sendSMS(
+          order.buyerPhone,
+          `Payment received: KSH ${tx.amount}. Funds are held in escrow for order ${order.id}.`
+        );
+        await sendSMS(
+          order.sellerPhone,
+          `Payment confirmed for order ${order.id}. Please dispatch the book.`
+        );
+      } catch (error) {
+        console.error("SMS payment notification failed:", error.message);
+      }
+    })();
   }
 
   db.callbackEvents.set(eventId, {

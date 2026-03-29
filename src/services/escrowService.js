@@ -1,6 +1,7 @@
 const { env } = require("../config/env");
 const { db, nowIso, appendLedgerEntry } = require("../data/store");
 const { ORDER_STATUS } = require("../utils/constants");
+const { sendSMS } = require("./smsService");
 
 function releaseToSeller(orderId, reason = "buyer_confirmed") {
   const order = db.orders.get(orderId);
@@ -44,6 +45,22 @@ function releaseToSeller(orderId, reason = "buyer_confirmed") {
   if (seller) {
     seller.booksSoldCount += 1;
   }
+
+  // Fire-and-forget notifications; release flow must not fail on SMS errors.
+  (async () => {
+    try {
+      await sendSMS(
+        order.sellerPhone,
+        `Funds released: KSH ${sellerAmount}. Delivery fee: KSH ${order.deliveryFee}. Commission: KSH ${commission}.`
+      );
+      await sendSMS(
+        order.buyerPhone,
+        `Transaction complete. Seller payout released for order ${orderId}.`
+      );
+    } catch (error) {
+      console.error("SMS release notification failed:", error.message);
+    }
+  })();
 
   return {
     data: {
@@ -89,6 +106,22 @@ function createDispute({ orderId, reason, buyerEvidence }) {
     amount: 0,
     note: reason,
   });
+
+  // Fire-and-forget notifications; dispute creation must not fail on SMS errors.
+  (async () => {
+    try {
+      await sendSMS(
+        order.sellerPhone,
+        `Dispute alert for order ${orderId}. Reason: ${reason}. Please respond within 24 hours.`
+      );
+      await sendSMS(
+        order.buyerPhone,
+        "Dispute created. Funds remain in escrow during review."
+      );
+    } catch (error) {
+      console.error("SMS dispute notification failed:", error.message);
+    }
+  })();
 
   return { data: dispute };
 }
